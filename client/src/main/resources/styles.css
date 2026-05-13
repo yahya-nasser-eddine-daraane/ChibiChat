@@ -1,0 +1,467 @@
+/* ═══════════════════════════════════════════════════
+   ChibiChat — Polished Stylesheet
+   Light mode default, dark mode via .dark class
+═══════════════════════════════════════════════════ */
+
+.root {
+    -cc-bg-primary:      #FFFFFF;
+    -cc-bg-secondary:    #F7F7F8;
+    -cc-bg-tertiary:     #EDEDEE;
+    -cc-bg-hover:        #E8E8EA;
+    -cc-accent:          #2563EB;
+    -cc-accent-hover:    #1D4ED8;
+    -cc-accent-light:    #EFF6FF;
+    -cc-bubble-out:      #2563EB;
+    -cc-bubble-in:       #F0F0F1;
+    -cc-text-primary:    #111827;
+    -cc-text-secondary:  #6B7280;
+    -cc-text-tertiary:   #9CA3AF;
+    -cc-text-out:        #FFFFFF;
+    -cc-text-in:         #111827;
+    -cc-border:          #E5E7EB;
+    -cc-online:          #10B981;
+    -cc-offline:         #9CA3AF;
+    -cc-shadow:          rgba(0,0,0,0.06);
+    -fx-font-family:     "Segoe UI", "Inter", "SF Pro Display", sans-serif;
+    -fx-background-color: -cc-bg-secondary;
+}
+
+/* ── Dark mode overrides ────────────────────────── */
+.root.dark {
+    -cc-bg-primary:      #1C1C1E;
+    -cc-bg-secondary:    #141414;
+    -cc-bg-tertiary:     #2C2C2E;
+    -cc-bg-hover:        #3A3A3C;
+    -cc-accent:          #3B82F6;
+    -cc-accent-hover:    #2563EB;
+    -cc-accent-light:    #1E3A5F;
+    -cc-bubble-out:      #2563EB;
+    -cc-bubble-in:       #2C2C2E;
+    -cc-text-primary:    #F2F2F7;
+    -cc-text-secondary:  #AEAEB2;
+    -cc-text-tertiary:   #636366;
+    -cc-text-out:        #FFFFFF;
+    -cc-text-in:         #F2F2F7;
+    -cc-border:          #38383A;
+    -cc-shadow:          rgba(0,0,0,0.3);
+    -fx-background-color: -cc-bg-secondary;
+}
+
+/* ══════════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════════ */
+.sidebar {
+    -fx-background-color: -cc-bg-primary;
+    -fx-border-color: -cc-border;
+    -fx-border-width: 0 1 0 0;
+    -fx-pref-width: 240px;
+    -fx-min-width: 200px;
+}
+
+.sidebar-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cc-text-primary;
+    -fx-padding: 16 16 4 16;
+}
+
+.search-field {
+    -fx-background-color: -cc-bg-tertiary;
+    -fx-border-color: transparent;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 8 12 8 12;
+    -fx-font-size: 13px;
+    -fx-prompt-text-fill: -cc-text-tertiary;
+    -fx-text-fill: -cc-text-primary;
+}
+
+.search-field:focused {
+    -fx-border-color: -cc-accent;
+    -fx-border-width: 1.5;
+    -fx-background-color: -cc-bg-primary;
+}
+
+/* Contact cells */
+.contact-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 10 14 10 14;
+    -fx-cursor: hand;
+    -fx-background-radius: 10;
+}
+
+.contact-cell:hover {
+    -fx-background-color: -cc-bg-hover;
+}
+
+.contact-cell.selected {
+    -fx-background-color: -cc-accent-light;
+}
+
+.contact-name {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cc-text-primary;
+}
+
+.contact-preview {
+    -fx-font-size: 12px;
+    -fx-text-fill: -cc-text-secondary;
+}
+
+.online-dot  { -fx-fill: -cc-online;  }
+.offline-dot { -fx-fill: -cc-offline; }
+
+.add-contact-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-text-fill: -cc-text-secondary;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 8 14 8 14;
+}
+
+.add-contact-btn:hover {
+    -fx-background-color: -cc-bg-hover;
+    -fx-text-fill: -cc-text-primary;
+}
+
+/* ══════════════════════════════════════════════════
+   USER BAR (bottom of sidebar)
+══════════════════════════════════════════════════ */
+.user-bar {
+    -fx-background-color: -cc-bg-secondary;
+    -fx-border-color: -cc-border;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 14 10 14;
+}
+
+.user-bar-name {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cc-text-primary;
+}
+
+.user-bar-status {
+    -fx-font-size: 11px;
+    -fx-text-fill: -cc-online;
+}
+
+.theme-toggle-btn {
+    -fx-background-color: -cc-bg-tertiary;
+    -fx-border-color: transparent;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+    -fx-font-size: 15px;
+    -fx-pref-width: 32px;
+    -fx-pref-height: 32px;
+    -fx-padding: 0;
+}
+
+.theme-toggle-btn:hover {
+    -fx-background-color: -cc-bg-hover;
+}
+
+/* ══════════════════════════════════════════════════
+   CHAT HEADER
+══════════════════════════════════════════════════ */
+.chat-header {
+    -fx-background-color: -cc-bg-primary;
+    -fx-border-color: -cc-border;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 12 18 12 18;
+    -fx-effect: dropshadow(gaussian, -cc-shadow, 4, 0, 0, 1);
+}
+
+.chat-peer-name {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cc-text-primary;
+}
+
+.chat-peer-status {
+    -fx-font-size: 12px;
+    -fx-text-fill: -cc-online;
+}
+
+/* ══════════════════════════════════════════════════
+   MESSAGE BUBBLES
+══════════════════════════════════════════════════ */
+.bubble-out {
+    -fx-background-color: -cc-bubble-out;
+    -fx-background-radius: 18 4 18 18;
+    -fx-padding: 10 14 8 14;
+    -fx-max-width: 380px;
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.25), 6, 0, 0, 2);
+}
+
+.bubble-in {
+    -fx-background-color: -cc-bubble-in;
+    -fx-background-radius: 4 18 18 18;
+    -fx-padding: 10 14 8 14;
+    -fx-max-width: 380px;
+}
+
+.bubble-text-out {
+    -fx-text-fill: -cc-text-out;
+    -fx-font-size: 14px;
+    -fx-wrap-text: true;
+    -fx-line-spacing: 1;
+}
+
+.bubble-text-in {
+    -fx-text-fill: -cc-text-in;
+    -fx-font-size: 14px;
+    -fx-wrap-text: true;
+    -fx-line-spacing: 1;
+}
+
+.bubble-time-out {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(255,255,255,0.65);
+}
+
+.bubble-time {
+    -fx-font-size: 11px;
+    -fx-text-fill: -cc-text-tertiary;
+}
+
+.date-divider {
+    -fx-font-size: 12px;
+    -fx-text-fill: -cc-text-tertiary;
+    -fx-alignment: center;
+    -fx-padding: 10 0 10 0;
+    -fx-background-color: transparent;
+}
+
+/* File card */
+.file-card {
+    -fx-background-color: -cc-bg-tertiary;
+    -fx-background-radius: 12;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 10 14 10 14;
+    -fx-cursor: hand;
+    -fx-max-width: 260px;
+}
+
+.file-card:hover {
+    -fx-border-color: -cc-accent;
+    -fx-background-color: -cc-accent-light;
+}
+
+.file-name-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cc-text-primary;
+    -fx-wrap-text: true;
+}
+
+.file-size-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -cc-text-secondary;
+}
+
+/* ══════════════════════════════════════════════════
+   INPUT BAR
+══════════════════════════════════════════════════ */
+.input-bar {
+    -fx-background-color: -cc-bg-primary;
+    -fx-border-color: -cc-border;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 10 14 10 14;
+}
+
+.message-input {
+    -fx-background-color: -cc-bg-tertiary;
+    -fx-border-color: transparent;
+    -fx-border-radius: 22;
+    -fx-background-radius: 22;
+    -fx-padding: 10 16 10 16;
+    -fx-font-size: 14px;
+    -fx-text-fill: -cc-text-primary;
+    -fx-prompt-text-fill: -cc-text-tertiary;
+    -fx-pref-height: 42px;
+}
+
+.message-input:focused {
+    -fx-border-color: -cc-accent;
+    -fx-border-width: 1.5;
+    -fx-background-color: -cc-bg-primary;
+}
+
+.icon-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-font-size: 20px;
+    -fx-text-fill: -cc-text-secondary;
+    -fx-padding: 4 6 4 6;
+    -fx-background-radius: 50;
+    -fx-pref-width: 38px;
+    -fx-pref-height: 38px;
+}
+
+.icon-btn:hover {
+    -fx-background-color: -cc-bg-tertiary;
+    -fx-text-fill: -cc-accent;
+}
+
+.send-btn {
+    -fx-background-color: -cc-accent;
+    -fx-background-radius: 50;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-pref-width: 42px;
+    -fx-pref-height: 42px;
+    -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.4), 8, 0, 0, 2);
+}
+
+.send-btn:hover {
+    -fx-background-color: -cc-accent-hover;
+}
+
+/* ══════════════════════════════════════════════════
+   LOGIN SCREEN
+══════════════════════════════════════════════════ */
+.login-container {
+    -fx-background-color: -cc-bg-primary;
+    -fx-alignment: center;
+    -fx-spacing: 14;
+    -fx-padding: 48;
+}
+
+.login-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cc-accent;
+}
+
+.login-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: -cc-text-secondary;
+}
+
+.login-field {
+    -fx-pref-width: 320px;
+    -fx-pref-height: 44px;
+    -fx-background-color: -cc-bg-tertiary;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 0 14 0 14;
+    -fx-font-size: 14px;
+    -fx-text-fill: -cc-text-primary;
+    -fx-prompt-text-fill: -cc-text-tertiary;
+}
+
+.login-field:focused {
+    -fx-border-color: -cc-accent;
+    -fx-border-width: 2;
+    -fx-background-color: -cc-bg-primary;
+}
+
+.login-btn {
+    -fx-pref-width: 320px;
+    -fx-pref-height: 44px;
+    -fx-background-color: -cc-accent;
+    -fx-background-radius: 10;
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(37,99,235,0.35), 10, 0, 0, 3);
+}
+
+.login-btn:hover {
+    -fx-background-color: -cc-accent-hover;
+}
+
+.login-link {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: -cc-accent;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+
+.login-link:hover {
+    -fx-text-fill: -cc-accent-hover;
+}
+
+.login-error {
+    -fx-text-fill: #EF4444;
+    -fx-font-size: 13px;
+}
+
+/* ══════════════════════════════════════════════════
+   STICKER PICKER
+══════════════════════════════════════════════════ */
+.sticker-picker {
+    -fx-background-color: -cc-bg-primary;
+    -fx-border-color: -cc-border;
+    -fx-border-radius: 14;
+    -fx-background-radius: 14;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 16, 0, 0, 6);
+    -fx-padding: 10;
+}
+
+.sticker-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-cursor: hand;
+    -fx-font-size: 28px;
+    -fx-padding: 6;
+    -fx-background-radius: 10;
+    -fx-pref-width: 48px;
+    -fx-pref-height: 48px;
+}
+
+.sticker-btn:hover {
+    -fx-background-color: -cc-bg-tertiary;
+}
+
+/* ══════════════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════════════ */
+.empty-chat {
+    -fx-alignment: center;
+    -fx-spacing: 14;
+    -fx-background-color: -cc-bg-secondary;
+}
+
+.empty-chat-text {
+    -fx-font-size: 15px;
+    -fx-text-fill: -cc-text-secondary;
+    -fx-font-weight: bold;
+}
+
+/* ══════════════════════════════════════════════════
+   SCROLLBAR
+══════════════════════════════════════════════════ */
+.scroll-bar:vertical {
+    -fx-pref-width: 6px;
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: -cc-bg-hover;
+    -fx-background-radius: 3;
+}
+
+.scroll-bar:vertical .track,
+.scroll-bar:vertical .increment-button,
+.scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+}

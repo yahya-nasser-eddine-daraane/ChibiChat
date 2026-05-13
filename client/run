@@ -1,0 +1,2 @@
+java --module-path /usr/share/openjfx/lib      --add-modules javafx.controls,javafx.fxml,javafx.swing      -jar target/chibichat-1.0-SNAPSHOT.jar
+

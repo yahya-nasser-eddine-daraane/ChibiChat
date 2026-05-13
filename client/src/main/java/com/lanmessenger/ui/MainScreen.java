@@ -24,6 +24,7 @@ public class MainScreen {
 
     private BorderPane centerArea;
     private VBox       contactListBox;
+    private VBox       groupListBox;
 
     public MainScreen(Stage stage) { this.stage = stage; }
 
@@ -72,20 +73,40 @@ public class MainScreen {
             (javafx.collections.ListChangeListener<ContactRecord>) c -> rebuildContactList()
         );
 
-        ScrollPane scroll = new ScrollPane(contactListBox);
+        // Group list
+        Label groupsHeader = new Label("GROUPS");
+        groupsHeader.setStyle("-fx-font-size: 11px; -fx-font-weight: bold; -fx-text-fill: -cc-text-tertiary;");
+        VBox.setMargin(groupsHeader, new Insets(12, 14, 4, 14));
+
+        groupListBox = new VBox(2);
+        groupListBox.setPadding(new Insets(0, 8, 8, 8));
+        rebuildGroupList();
+
+        state.getGroups().addListener(
+            (javafx.collections.ListChangeListener<com.lanmessenger.model.GroupRecord>) g -> rebuildGroupList()
+        );
+
+        VBox combinedList = new VBox(contactListBox, groupsHeader, groupListBox);
+        ScrollPane scroll = new ScrollPane(combinedList);
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
-        // Add contact button
+        // Buttons
         Button addBtn = new Button("＋  Add contact");
         addBtn.getStyleClass().add("add-contact-btn");
         addBtn.setMaxWidth(Double.MAX_VALUE);
         VBox.setMargin(addBtn, new Insets(4, 12, 4, 12));
         addBtn.setOnAction(e -> showAddContactDialog());
 
-        sidebar.getChildren().addAll(title, search, scroll, addBtn, buildUserBar());
+        Button createGroupBtn = new Button("👥  Create group");
+        createGroupBtn.getStyleClass().add("add-contact-btn");
+        createGroupBtn.setMaxWidth(Double.MAX_VALUE);
+        VBox.setMargin(createGroupBtn, new Insets(4, 12, 4, 12));
+        createGroupBtn.setOnAction(e -> showCreateGroupDialog());
+
+        sidebar.getChildren().addAll(title, search, scroll, addBtn, createGroupBtn, buildUserBar());
 
         search.textProperty().addListener((obs, old, val) -> filterContacts(val));
         return sidebar;
@@ -244,6 +265,79 @@ public class MainScreen {
         centerArea.setCenter(pane.getRoot());
     }
 
+    private void rebuildGroupList() {
+        Platform.runLater(() -> {
+            groupListBox.getChildren().clear();
+            for (com.lanmessenger.model.GroupRecord g : state.getGroups()) {
+                HBox cell = buildGroupCell(g);
+                groupListBox.getChildren().add(cell);
+            }
+        });
+    }
+
+    private HBox buildGroupCell(com.lanmessenger.model.GroupRecord group) {
+        HBox cell = new HBox(10);
+        cell.getStyleClass().add("contact-cell");
+        cell.setAlignment(Pos.CENTER_LEFT);
+        cell.setPadding(new Insets(10, 12, 10, 12));
+
+        GroupState gs = state.getGroupState(group.groupId());
+
+        StackPane avatar = buildAvatar(group.name(), false); // Groups are always "offline" in this UI sense
+
+        Label nameLabel = new Label(group.name());
+        nameLabel.getStyleClass().add("contact-name");
+
+        Label previewLabel = new Label(gs.getLastMessage().isEmpty() ? "Group Chat" : gs.getLastMessage());
+        previewLabel.getStyleClass().add("contact-preview");
+        
+        VBox nameBox = new VBox(2, nameLabel, previewLabel);
+        HBox.setHgrow(nameBox, Priority.ALWAYS);
+
+        StackPane badge = buildGroupUnreadBadge(gs);
+
+        cell.getChildren().addAll(avatar, nameBox, badge);
+        cell.setOnMouseClicked(e -> selectGroup(group));
+
+        if (group.groupId().equals(state.getSelectedGroupId())) {
+            cell.getStyleClass().add("selected");
+        }
+
+        return cell;
+    }
+
+    private StackPane buildGroupUnreadBadge(GroupState gs) {
+        Circle badgeBg = new Circle(10);
+        badgeBg.setFill(Color.web("#10B981"));
+        badgeBg.setVisible(gs.getUnreadCount() > 0);
+
+        Label badgeLabel = new Label(gs.getUnreadCount() > 0 ? String.valueOf(gs.getUnreadCount()) : "");
+        badgeLabel.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: white;");
+        badgeLabel.setVisible(gs.getUnreadCount() > 0);
+
+        StackPane badge = new StackPane(badgeBg, badgeLabel);
+        gs.unreadCountProperty().addListener((obs, old, count) -> Platform.runLater(() -> {
+            boolean hasUnread = count.intValue() > 0;
+            badgeBg.setVisible(hasUnread);
+            badgeLabel.setVisible(hasUnread);
+            badgeLabel.setText(hasUnread ? String.valueOf(count.intValue()) : "");
+        }));
+        return badge;
+    }
+
+    private void selectGroup(com.lanmessenger.model.GroupRecord group) {
+        contactCells.values().forEach(c -> c.getStyleClass().remove("selected"));
+        groupListBox.getChildren().forEach(n -> n.getStyleClass().remove("selected"));
+        
+        state.setSelectedGroupId(group.groupId());
+        state.getGroupState(group.groupId()).clearUnread();
+
+        ChatPane pane = chatPanes.computeIfAbsent(
+            group.groupId(), id -> new ChatPane(group)
+        );
+        centerArea.setCenter(pane.getRoot());
+    }
+
     private void filterContacts(String query) {
         contactListBox.getChildren().clear();
         String q = query.toLowerCase();
@@ -316,33 +410,47 @@ public class MainScreen {
                 msg.getType() == ChatMessage.Type.PING ||
                 msg.getType() == ChatMessage.Type.PONG) return;
 
-            state.getContacts().stream()
-                .filter(c -> c.username().equals(fromUsername))
-                .findFirst()
-                .ifPresent(contact -> Platform.runLater(() -> {
-                    ContactState cs = state.getContactState(contact.userId());
+            Platform.runLater(() -> {
+                String preview = switch (msg.getType()) {
+                    case TEXT    -> msg.getContent();
+                    case IMAGE   -> "📷 Image";
+                    case FILE    -> "📎 " + (msg.getFileName() != null ? msg.getFileName() : "File");
+                    case STICKER -> "🎭 Sticker";
+                    default      -> "";
+                };
 
-                    // Update last message preview
-                    String preview = switch (msg.getType()) {
-                        case TEXT    -> msg.getContent();
-                        case IMAGE   -> "📷 Image";
-                        case FILE    -> "📎 " + (msg.getFileName() != null ? msg.getFileName() : "File");
-                        case STICKER -> "🎭 Sticker";
-                        default      -> "";
-                    };
-                    cs.setLastMessage(preview, msg.getTimestamp());
+                if (msg.isGroupMessage()) {
+                    String groupId = msg.getGroupId();
+                    GroupState gs = state.getGroupState(groupId);
+                    gs.setLastMessage(fromUsername + ": " + preview, msg.getTimestamp());
 
-                    // Increment unread if this contact isn't currently open
-                    if (!contact.userId().equals(state.getSelectedContactId())) {
-                        cs.incrementUnread();
+                    if (!groupId.equals(state.getSelectedGroupId())) {
+                        gs.incrementUnread();
                     }
 
-                    // Deliver to chat pane
-                    ChatPane pane = chatPanes.computeIfAbsent(
-                        contact.userId(), id -> new ChatPane(contact)
-                    );
+                    com.lanmessenger.model.GroupRecord group = state.getGroups().stream()
+                        .filter(g -> g.groupId().equals(groupId))
+                        .findFirst().orElse(new com.lanmessenger.model.GroupRecord(groupId, msg.getGroupName(), ""));
+
+                    ChatPane pane = chatPanes.computeIfAbsent(groupId, id -> new ChatPane(group));
                     pane.receiveMessage(msg);
-                }));
+                } else {
+                    state.getContacts().stream()
+                        .filter(c -> c.username().equals(fromUsername))
+                        .findFirst()
+                        .ifPresent(contact -> {
+                            ContactState cs = state.getContactState(contact.userId());
+                            cs.setLastMessage(preview, msg.getTimestamp());
+
+                            if (!contact.userId().equals(state.getSelectedContactId())) {
+                                cs.incrementUnread();
+                            }
+
+                            ChatPane pane = chatPanes.computeIfAbsent(contact.userId(), id -> new ChatPane(contact));
+                            pane.receiveMessage(msg);
+                        });
+                }
+            });
         });
     }
 
@@ -431,6 +539,33 @@ public class MainScreen {
                 alert.showAndWait();
             });
         }
+    }
+
+    private void showCreateGroupDialog() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Create Group");
+        dialog.setHeaderText("Create a new group chat");
+        dialog.setContentText("Group Name:");
+
+        dialog.showAndWait().ifPresent(name -> {
+            if (!name.isBlank()) {
+                new Thread(() -> {
+                    try {
+                        com.lanmessenger.model.GroupRecord group = state.getServerClient().createGroup(name);
+                        Platform.runLater(() -> {
+                            state.getGroups().add(group);
+                            selectGroup(group);
+                        });
+                    } catch (Exception e) {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.ERROR);
+                            alert.setContentText("Failed to create group: " + e.getMessage());
+                            alert.showAndWait();
+                        });
+                    }
+                }).start();
+            }
+        });
     }
 
     private void applyTheme(Scene scene) {

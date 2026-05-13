@@ -53,6 +53,26 @@ CREATE TABLE Sessions (
 );
 GO
 
+IF OBJECT_ID('GroupMembers', 'U') IS NOT NULL DROP TABLE GroupMembers;
+IF OBJECT_ID('Groups', 'U') IS NOT NULL DROP TABLE Groups;
+GO
+
+CREATE TABLE Groups (
+    group_id    UNIQUEIDENTIFIER  DEFAULT NEWID() PRIMARY KEY,
+    name        NVARCHAR(100)     NOT NULL,
+    created_by  UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(user_id),
+    created_at  DATETIME2         DEFAULT GETUTCDATE()
+);
+GO
+
+CREATE TABLE GroupMembers (
+    group_id    UNIQUEIDENTIFIER  NOT NULL REFERENCES Groups(group_id) ON DELETE CASCADE,
+    user_id     UNIQUEIDENTIFIER  NOT NULL REFERENCES Users(user_id) ON DELETE CASCADE,
+    joined_at   DATETIME2         DEFAULT GETUTCDATE(),
+    PRIMARY KEY (group_id, user_id)
+);
+GO
+
 CREATE INDEX IF NOT EXISTS IX_Users_Username ON Users(username);
 CREATE INDEX IF NOT EXISTS IX_Sessions_Token ON Sessions(token_hash);
 CREATE INDEX IF NOT EXISTS IX_Contacts_Owner ON Contacts(owner_id);

@@ -74,6 +74,8 @@ public class LocalDatabase {
                 "  message_id   VARCHAR(64)      NOT NULL UNIQUE," +
                 "  contact_id   VARCHAR(64)      NOT NULL," +
                 "  contact_name NVARCHAR(100)    NOT NULL," +
+                "  sender_id    VARCHAR(64)      NULL," +   // NEW: for group chats
+                "  sender_name  NVARCHAR(100)    NULL," +   // NEW
                 "  direction    VARCHAR(4)       NOT NULL," +  // OUT or IN
                 "  msg_type     VARCHAR(10)      NOT NULL," +  // TEXT IMAGE FILE STICKER
                 "  content      NVARCHAR(MAX)    NULL," +
@@ -86,6 +88,12 @@ public class LocalDatabase {
                 "  created_at   DATETIME2        DEFAULT GETUTCDATE()" +
                 ")"
             );
+
+            // Migration: Add sender_id and sender_name if they don't exist
+            s.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Messages') AND name = 'sender_id') " +
+                      "ALTER TABLE Messages ADD sender_id VARCHAR(64) NULL");
+            s.execute("IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('Messages') AND name = 'sender_name') " +
+                      "ALTER TABLE Messages ADD sender_name NVARCHAR(100) NULL");
             s.execute(
                 "IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='IX_Messages_Contact') " +
                 "CREATE INDEX IX_Messages_Contact ON Messages(contact_id, timestamp)"

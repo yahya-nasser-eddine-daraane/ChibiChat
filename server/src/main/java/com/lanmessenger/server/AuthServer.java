@@ -1,10 +1,12 @@
 package com.lanmessenger.server;
 
 import com.lanmessenger.db.DatabaseConfig;
+import com.lanmessenger.db.GroupRepository;
 import com.lanmessenger.handler.HeartbeatHandler;
 import com.lanmessenger.db.UserRepository;
 import com.lanmessenger.handler.AuthHandler;
 import com.lanmessenger.handler.ContactHandler;
+import com.lanmessenger.handler.GroupHandler;
 import com.lanmessenger.handler.PresenceHandler;
 import com.sun.net.httpserver.HttpServer;
 
@@ -53,9 +55,11 @@ public class AuthServer {
 
         DatabaseConfig  dbConfig  = new DatabaseConfig(dbHost, dbPort, dbName, dbUser, dbPassword);
         UserRepository  repo      = new UserRepository(dbConfig);
+        GroupRepository groupRepo = new GroupRepository(dbConfig);
         AuthHandler     authH     = new AuthHandler(repo);
         ContactHandler  contactH  = new ContactHandler(repo);
         PresenceHandler presenceH = new PresenceHandler(repo);
+        GroupHandler    groupH    = new GroupHandler(groupRepo, repo);
 
         try {
             dbConfig.getConnection();
@@ -69,6 +73,7 @@ public class AuthServer {
         server.createContext("/auth",    authH);
         server.createContext("/contacts", contactH);
         server.createContext("/users",   presenceH);   // GET /users/{username}/address
+        server.createContext("/groups",  groupH);
         HeartbeatHandler heartbeatH = new HeartbeatHandler(repo);
         server.createContext("/auth/heartbeat",  heartbeatH);
         server.createContext("/contacts/online", heartbeatH);

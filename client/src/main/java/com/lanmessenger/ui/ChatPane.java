@@ -24,6 +24,7 @@ import java.util.*;
 public class ChatPane {
 
     private final ContactRecord contact;
+    private final com.lanmessenger.model.GroupRecord group;
     private final AppState      state = AppState.get();
 
     private VBox       messageList;
@@ -33,6 +34,13 @@ public class ChatPane {
 
     public ChatPane(ContactRecord contact) {
         this.contact = contact;
+        this.group   = null;
+        buildPane();
+    }
+
+    public ChatPane(com.lanmessenger.model.GroupRecord group) {
+        this.contact = null;
+        this.group   = group;
         buildPane();
     }
 
@@ -61,35 +69,46 @@ public class ChatPane {
         header.getStyleClass().add("chat-header");
         header.setAlignment(Pos.CENTER_LEFT);
 
-        ContactState cs = state.getContactState(contact.userId());
+        String titleText;
+        String statusText;
+        boolean online = false;
+
+        if (group != null) {
+            titleText = group.name();
+            statusText = "Group Chat";
+        } else {
+            titleText = "@" + contact.username();
+            ContactState cs = state.getContactState(contact.userId());
+            online = cs.isOnline();
+            statusText = online ? "● Online" : "● Offline";
+
+            cs.onlineProperty().addListener((obs, old, isOnline) ->
+                Platform.runLater(() -> {
+                    ((Label) ((VBox) header.getChildren().get(1)).getChildren().get(1))
+                        .setText(isOnline ? "● Online" : "● Offline");
+                })
+            );
+        }
 
         // Avatar
         Circle bg = new Circle(20);
         String[] colors = {"#2563EB","#0F6E56","#993C1D","#533AB7","#993556","#0E7490"};
-        bg.setFill(Color.web(colors[Math.abs(contact.displayName().charAt(0)) % colors.length]));
-        String init = contact.displayName().length() >= 2
-            ? contact.displayName().substring(0, 2).toUpperCase()
-            : contact.displayName().substring(0, 1).toUpperCase();
+        bg.setFill(Color.web(colors[Math.abs(titleText.charAt(0)) % colors.length]));
+        String init = titleText.length() >= 2
+            ? titleText.substring(0, 2).toUpperCase()
+            : titleText.substring(0, 1).toUpperCase();
         Label initLabel = new Label(init);
         initLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: white;");
         StackPane avatar = new StackPane(bg, initLabel);
         avatar.setPrefSize(40, 40);
 
         VBox info = new VBox(2);
-        Label name = new Label("@" + contact.username());
+        Label name = new Label(titleText);
         name.getStyleClass().add("chat-peer-name");
 
-        Label status = new Label(cs.isOnline() ? "● Online" : "● Offline");
+        Label status = new Label(statusText);
         status.getStyleClass().add("chat-peer-status");
-        if (!cs.isOnline()) status.setStyle("-fx-text-fill: -cc-offline;");
-
-        // Update status label when online state changes
-        cs.onlineProperty().addListener((obs, old, online) ->
-            Platform.runLater(() -> {
-                status.setText(online ? "● Online" : "● Offline");
-                status.setStyle(online ? "" : "-fx-text-fill: -cc-offline;");
-            })
-        );
+        if (contact != null && !online) status.setStyle("-fx-text-fill: -cc-offline;");
 
         info.getChildren().addAll(name, status);
         header.getChildren().addAll(avatar, info);
@@ -276,17 +295,18 @@ public class ChatPane {
         if (text.isEmpty()) return;
         inputField.clear();
 
-        ChatMessage msg = ChatMessage.text(
-            state.getUserId(), state.getUsername(), contact.userId(), text);
+        ChatMessage msg;
+        if (group != null) {
+            msg = ChatMessage.groupText(state.getUserId(), state.getUsername(), group.groupId(), group.name(), text);
+            addOutgoingBubble(msg);
+            state.getGroupState(group.groupId()).setLastMessage("You: " + text, msg.getTimestamp());
+        } else {
+            msg = ChatMessage.text(state.getUserId(), state.getUsername(), contact.userId(), text);
+            addOutgoingBubble(msg);
+            state.getContactState(contact.userId()).setLastMessage(text, msg.getTimestamp());
+        }
 
-        addOutgoingBubble(msg);
-        if (state.getMessageStore() != null)
-            state.getMessageStore().saveOutgoing(msg, contact.userId(), contact.username());
         saveAndSend(msg);
-
-        // Update contact state
-        state.getContactState(contact.userId())
-             .setLastMessage(text, msg.getTimestamp());
     }
 
     private void pickFile() {
@@ -336,17 +356,22 @@ public class ChatPane {
     private void saveAndSend(ChatMessage msg) {
         new Thread(() -> {
             try {
-                ChatSession session = state.getRouter()
-                    .getOrOpenSession(contact.username(), contact.userId());
-                if (session == null) {
-                    Platform.runLater(() -> showAlert("Offline",
-                        "@" + contact.username() + " appears to be offline."));
-                    return;
+                if (group != null) {
+                    state.getRouter().sendToGroup(group.groupId(), group.name(), msg.getContent());
+                } else {
+                    ChatSession session = state.getRouter()
+                        .getOrOpenSession(contact.username(), contact.userId());
+                    if (session == null) {
+                        Platform.runLater(() -> showAlert("Offline",
+                            "@" + contact.username() + " appears to be offline."));
+                        return;
+                    }
+                    session.send(msg);
                 }
-                session.send(msg);
             } catch (IOException e) {
-                Platform.runLater(() -> showAlert("Offline",
-                    "@" + contact.username() + " appears to be offline."));
+                String peer = group != null ? group.name() : "@" + contact.username();
+                Platform.runLater(() -> showAlert("Error",
+                    "Failed to send to " + peer + ": " + e.getMessage()));
             }
         }).start();
     }
@@ -399,8 +424,14 @@ public class ChatPane {
             return buildImageNode(msg, outgoing);
         }
 
-        VBox bubble = new VBox(4);
+        VBox bubble = new VBox(2);
         bubble.getStyleClass().add(outgoing ? "bubble-out" : "bubble-in");
+
+        if (!outgoing && msg.isGroupMessage()) {
+            Label sender = new Label(msg.getFromUsername());
+            sender.setStyle("-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: -cc-text-tertiary;");
+            bubble.getChildren().add(sender);
+        }
 
         switch (msg.getType()) {
             case TEXT -> {
@@ -472,8 +503,9 @@ public class ChatPane {
         if (store == null) return;
 
         new Thread(() -> {
+            String conversationId = (group != null) ? group.groupId() : contact.userId();
             List<MessageStore.StoredMessage> history =
-                store.loadHistory(contact.userId(), 100);
+                store.loadHistory(conversationId, 100);
             if (history.isEmpty()) return;
 
             Platform.runLater(() -> {
@@ -507,20 +539,39 @@ public class ChatPane {
 
     private ChatMessage rebuildFromStore(MessageStore.StoredMessage m) {
         try {
-            String fromId   = m.isOutgoing() ? state.getUserId()   : contact.userId();
-            String fromName = m.isOutgoing() ? state.getUsername() : contact.username();
-            String toId     = m.isOutgoing() ? contact.userId()    : state.getUserId();
-            return switch (m.type()) {
-                case "TEXT"    -> ChatMessage.text(fromId, fromName, toId, m.content());
-                case "IMAGE"   -> m.content() == null ? null :
-                                  ChatMessage.image(fromId, fromName, toId,
-                                    m.content(), m.fileName(), m.mimeType());
-                case "FILE"    -> m.content() == null ? null :
-                                  ChatMessage.file(fromId, fromName, toId,
-                                    m.content(), m.fileName(), m.mimeType(), m.fileSize());
-                case "STICKER" -> ChatMessage.sticker(fromId, fromName, toId, m.stickerId());
-                default        -> null;
-            };
+            boolean isGroup = (group != null);
+            String fromId;
+            String fromName;
+            String toId;
+
+            if (m.isOutgoing()) {
+                fromId = state.getUserId();
+                fromName = state.getUsername();
+                toId = isGroup ? group.groupId() : contact.userId();
+            } else {
+                fromId = m.senderId() != null ? m.senderId() : (isGroup ? "" : contact.userId());
+                fromName = m.senderName() != null ? m.senderName() : (isGroup ? "Member" : contact.username());
+                toId = state.getUserId();
+            }
+
+            ChatMessage msg;
+            switch (m.type()) {
+                case "TEXT" -> {
+                    if (isGroup) msg = ChatMessage.groupText(fromId, fromName, group.groupId(), group.name(), m.content());
+                    else msg = ChatMessage.text(fromId, fromName, toId, m.content());
+                }
+                case "IMAGE" -> {
+                    if (m.content() == null) return null;
+                    msg = ChatMessage.image(fromId, fromName, toId, m.content(), m.fileName(), m.mimeType());
+                }
+                case "FILE" -> {
+                    if (m.content() == null) return null;
+                    msg = ChatMessage.file(fromId, fromName, toId, m.content(), m.fileName(), m.mimeType(), m.fileSize());
+                }
+                case "STICKER" -> msg = ChatMessage.sticker(fromId, fromName, toId, m.stickerId());
+                default -> { return null; }
+            }
+            return msg;
         } catch (Exception e) { return null; }
     }
 

@@ -52,6 +52,20 @@ public class MessageRouter {
         return msg.getMessageId();
     }
 
+    public void sendToGroup(String groupId, String groupName, String content) throws IOException {
+        var members = serverClient.getGroupMembers(groupId);
+        ChatMessage msg = ChatMessage.groupText(myUserId, myUsername, groupId, groupName, content);
+
+        for (var member : members) {
+            if (member.userId().equals(myUserId)) continue;
+            try {
+                send(member.username(), member.userId(), msg);
+            } catch (IOException e) {
+                System.err.println("[Router] Failed to send group message to " + member.username() + ": " + e.getMessage());
+            }
+        }
+    }
+
     public ChatSession getOrOpenSession(String username, String userId) throws IOException {
         ChatSession existing = sessions.get(userId);
         if (existing != null && existing.isConnected()) return existing;

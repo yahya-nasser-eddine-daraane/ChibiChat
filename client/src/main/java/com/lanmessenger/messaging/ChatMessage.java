@@ -20,6 +20,8 @@ public class ChatMessage {
     private String fromUserId;
     private String fromUsername;
     private String toUserId;
+    private String groupId;       // NEW: ID of the group if this is a group message
+    private String groupName;     // NEW: Name of the group
     private String content;       // text content or base64 data
     private String fileName;      // original file name (for FILE type)
     private String mimeType;      // e.g. image/png, application/pdf
@@ -37,6 +39,20 @@ public class ChatMessage {
         m.fromUserId  = fromUserId;
         m.fromUsername = fromUsername;
         m.toUserId    = toUserId;
+        m.content     = content;
+        m.timestamp   = Instant.now().toEpochMilli();
+        return m;
+    }
+
+    public static ChatMessage groupText(String fromUserId, String fromUsername,
+                                        String groupId, String groupName, String content) {
+        ChatMessage m = new ChatMessage();
+        m.messageId   = UUID.randomUUID().toString();
+        m.type        = Type.TEXT;
+        m.fromUserId  = fromUserId;
+        m.fromUsername = fromUsername;
+        m.groupId     = groupId;
+        m.groupName   = groupName;
         m.content     = content;
         m.timestamp   = Instant.now().toEpochMilli();
         return m;
@@ -121,6 +137,9 @@ public class ChatMessage {
     public String getFromUserId()   { return fromUserId; }
     public String getFromUsername() { return fromUsername; }
     public String getToUserId()     { return toUserId; }
+    public String getGroupId()      { return groupId; }
+    public String getGroupName()    { return groupName; }
+    public boolean isGroupMessage() { return groupId != null; }
     public String getContent()      { return content; }
     public String getFileName()     { return fileName; }
     public String getMimeType()     { return mimeType; }

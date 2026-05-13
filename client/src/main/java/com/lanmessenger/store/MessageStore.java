@@ -38,7 +38,9 @@ public class MessageStore {
      * Call this when a message arrives from a peer.
      */
     public void saveIncoming(ChatMessage msg) {
-        save(msg, msg.getFromUserId(), msg.getFromUsername(), "IN");
+        String conversationId = msg.isGroupMessage() ? msg.getGroupId() : msg.getFromUserId();
+        String conversationName = msg.isGroupMessage() ? msg.getGroupName() : msg.getFromUsername();
+        save(msg, conversationId, conversationName, "IN");
     }
 
     private void save(ChatMessage msg, String contactId,
@@ -46,37 +48,38 @@ public class MessageStore {
         String sql =
             "IF NOT EXISTS (SELECT 1 FROM Messages WHERE message_id = ?) " +
             "INSERT INTO Messages " +
-            "(message_id, contact_id, contact_name, direction, msg_type, " +
-            " content, file_name, mime_type, file_size, sticker_id, timestamp) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            "(message_id, contact_id, contact_name, sender_id, sender_name, " +
+            " direction, msg_type, content, file_name, mime_type, file_size, " +
+            " sticker_id, timestamp) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection c = db.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             String type = msg.getType().name();
 
-            // For images/files, store content only if under 5MB to avoid DB bloat
-            // Large files stored as null with a note in file_name
             String content = msg.getContent();
             if (content != null && content.length() > 5_000_000) {
-                content = null; // too large to store — file_name still saved
+                content = null;
             }
 
-            ps.setString(1,  msg.getMessageId()); // EXISTS check
+            ps.setString(1,  msg.getMessageId());
             ps.setString(2,  msg.getMessageId());
             ps.setString(3,  contactId);
             ps.setString(4,  contactUsername);
-            ps.setString(5,  direction);
-            ps.setString(6,  type);
-            ps.setString(7,  content);
-            ps.setString(8,  msg.getFileName());
-            ps.setString(9,  msg.getMimeType());
+            ps.setString(5,  msg.getFromUserId());
+            ps.setString(6,  msg.getFromUsername());
+            ps.setString(7,  direction);
+            ps.setString(8,  type);
+            ps.setString(9,  content);
+            ps.setString(10, msg.getFileName());
+            ps.setString(11, msg.getMimeType());
             if (msg.getFileSize() > 0)
-                ps.setLong(10, msg.getFileSize());
+                ps.setLong(12, msg.getFileSize());
             else
-                ps.setNull(10, Types.BIGINT);
-            ps.setString(11, msg.getStickerId());
-            ps.setTimestamp(12, Timestamp.from(Instant.ofEpochMilli(msg.getTimestamp())));
+                ps.setNull(12, Types.BIGINT);
+            ps.setString(13, msg.getStickerId());
+            ps.setTimestamp(14, Timestamp.from(Instant.ofEpochMilli(msg.getTimestamp())));
 
             ps.executeUpdate();
 
@@ -85,23 +88,7 @@ public class MessageStore {
         }
     }
 
-    // ── Mark delivered ────────────────────────────────────────────────────────
-
-    /**
-     * Marks a message as delivered when we receive a delivery receipt.
-     */
-    public void markDelivered(String messageId) {
-        try (Connection c = db.getConnection();
-             PreparedStatement ps = c.prepareStatement(
-                     "UPDATE Messages SET delivered = 1 WHERE message_id = ?")) {
-            ps.setString(1, messageId);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            System.err.println("[MessageStore] Deliver error: " + e.getMessage());
-        }
-    }
-
-    // ── Load history ──────────────────────────────────────────────────────────
+    // ... (markDelivered)
 
     /**
      * Loads the last N messages for a conversation, oldest first.
@@ -110,10 +97,10 @@ public class MessageStore {
     public List<StoredMessage> loadHistory(String contactId, int limit) {
         String sql =
             "SELECT TOP (?) message_id, direction, msg_type, content, " +
-            "file_name, mime_type, file_size, sticker_id, delivered, timestamp " +
+            "file_name, mime_type, file_size, sticker_id, sender_id, sender_name, delivered, timestamp " +
             "FROM (" +
             "  SELECT TOP (?) message_id, direction, msg_type, content, " +
-            "  file_name, mime_type, file_size, sticker_id, delivered, timestamp " +
+            "  file_name, mime_type, file_size, sticker_id, sender_id, sender_name, delivered, timestamp " +
             "  FROM Messages WHERE contact_id = ? ORDER BY timestamp DESC" +
             ") sub ORDER BY timestamp ASC";
 
@@ -134,6 +121,8 @@ public class MessageStore {
                         rs.getString("mime_type"),
                         rs.getLong("file_size"),
                         rs.getString("sticker_id"),
+                        rs.getString("sender_id"),
+                        rs.getString("sender_name"),
                         rs.getBoolean("delivered"),
                         rs.getTimestamp("timestamp").toInstant().toEpochMilli()
                     ));
@@ -156,6 +145,8 @@ public class MessageStore {
         String  mimeType,
         long    fileSize,
         String  stickerId,
+        String  senderId,
+        String  senderName,
         boolean delivered,
         long    timestamp
     ) {
